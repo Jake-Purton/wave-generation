@@ -2,17 +2,21 @@
 //! The scene includes a patterned texture and a rotation for visualizing the normals and UVs.
 
 use std::f32::consts::PI;
+use bevy_rapier3d::prelude::*;
 
 use bevy::{
     prelude::*,
-    render::{render_resource::{Extent3d, TextureDimension, TextureFormat}},
+    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(ImagePlugin::default_nearest()))
+        .add_plugin(WorldInspectorPlugin)
+        .add_plugin(RapierPhysicsPlugin::<NoUserData>::default())
+        .add_plugin(RapierDebugRenderPlugin::default())
         .add_startup_system(setup)
-        .add_system(rotate)
         .add_system(camera_move_system)
         .insert_resource(ClearColor(Color::rgb(0.0, 0.8, 0.0)))
         .run();
@@ -60,6 +64,10 @@ fn setup(
                 ..default()
             },
             Shape,
+            RigidBody::Dynamic,
+            Collider::ball(1.0),
+            GravityScale(1.0),
+            Velocity { linvel: Vec3::ZERO, angvel: Vec3::ZERO },
         ));
     }
 
@@ -75,22 +83,20 @@ fn setup(
     });
 
     // ground plane
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(shape::Plane{size: 50.0}.into()),
-        material: materials.add(Color::SILVER.into()),
-        ..default()
-    });
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(shape::Plane{size: 50.0}.into()),
+            material: materials.add(Color::SILVER.into()),
+            ..default()
+        },
+        RigidBody::Fixed,
+        Collider::cuboid(25.0, 1.0, 25.0)
+    ));
 
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0.0, 6., 12.0).looking_at(Vec3::new(0., 1., 0.), Vec3::Y),
         ..default()
     });
-}
-
-fn rotate(mut query: Query<&mut Transform, With<Shape>>, time: Res<Time>) {
-    for mut transform in &mut query {
-        transform.rotate_y(time.delta_seconds() / 2.);
-    }
 }
 
 /// Creates a colorful test pattern
