@@ -11,7 +11,8 @@ use bevy_rapier3d::prelude::*;
 use player::PlayerPlugin;
 use setup::SetupPlugin;
 
-const GRAVITY_CONSTANT: Vec3 = Vec3::new(0.0, -10.0, 0.0);
+const GRAVITY_CONSTANT: Vec3 = Vec3::new(0.0, -980.0, 0.0);
+const PLAYER_SIZE: f32 = 100.0;
 
 
 fn main() {

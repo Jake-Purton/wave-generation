@@ -5,7 +5,7 @@ use bevy::{
     render::{render_resource::{Extent3d, TextureDimension, TextureFormat}, camera::Viewport}, core_pipeline::clear_color::ClearColorConfig, window::{WindowResized, WindowId},
 };
 
-use crate::player::Player;
+use crate::{player::Player, PLAYER_SIZE};
 pub struct SetupPlugin;
 
 impl Plugin for SetupPlugin {
@@ -13,7 +13,8 @@ impl Plugin for SetupPlugin {
 
         app
             .add_startup_system(setup)
-            .add_system(set_camera_viewports);
+            // .add_system(set_camera_viewports)
+            ;
     }
 }
 
@@ -40,17 +41,23 @@ pub fn setup(
     });
     
     let camera = commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.5, -0.5).looking_at(Vec3::new(0.0, 0.0, -100.0), Vec3::Y),
+        transform: Transform::from_xyz(0.0, PLAYER_SIZE * 4.0, PLAYER_SIZE * 4.0).looking_at(Vec3::new(0.0, 0.0, -100.0), Vec3::Y),
+        camera: Camera {
+            priority: 2,
+            ..Default::default()
+        },
         ..default()
     }).insert(PlayerCamera).id();
 
+    let mut player = shape::Capsule::default();
+    (player.radius, player.depth) = (PLAYER_SIZE / 2.0, PLAYER_SIZE);
+
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(shape::Capsule::default().into()),
+            mesh: meshes.add(player.into()),
             material: debug_material.clone(),
             transform: Transform {
-                translation: Vec3::new(0.0, 20.0, 0.0),
-                scale: Vec3::ONE,
+                translation: Vec3::new(0.0, 200.0, 0.0),
                 ..default()
             },
             ..default()
@@ -58,37 +65,37 @@ pub fn setup(
         Shape,
         KinematicCharacterController::default(),
         KinematicCharacterControllerOutput::default(),
-        Collider::capsule_y(0.5, 0.5), 
-        Player { run_speed: 10.0, velocity: Vec3::ZERO, jump_velocity: 20.0 },       
+        Collider::capsule_y(PLAYER_SIZE / 2.0, PLAYER_SIZE / 2.0), 
+        Player { run_speed: 300.0, velocity: Vec3::ZERO, jump_velocity: 600.0 },       
     )).push_children(&[camera]);
 
     commands.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: 9000.0,
-            range: 100.,
+            intensity: 10000000.0,
+            range: 10000.,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(8.0, 16.0, 8.0),
+        transform: Transform::from_xyz(0.0, 1000.0, 0.0),
         ..default()
     });
 
     // ground plane
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(shape::Plane{size: 50.0}.into()),
+            mesh: meshes.add(shape::Plane{size: 10000.0}.into()),
             material: materials.add(Color::YELLOW.into()),
             ..default()
         },
         RigidBody::Fixed,
-        Collider::cuboid(25.0, 0.0, 25.0)
+        Collider::cuboid(5000.0, 0.0, 5000.0)
     ));
 
     // global camera
 
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 30., 0.0).looking_at(Vec3::ZERO, Vec3::Z),
+            transform: Transform::from_xyz(0.0, 3000.0, 0.0).looking_at(Vec3::ZERO, Vec3::Z),
             camera: Camera {
                 // Renders the right camera after the player camera, which has a default priority of 0
                 priority: 1,
@@ -134,31 +141,31 @@ fn uv_debug_texture() -> Image {
     )
 }
 
-fn set_camera_viewports(
-    windows: Res<Windows>,
-    mut resize_events: EventReader<WindowResized>,
-    mut left_camera: Query<&mut Camera, (With<PlayerCamera>, Without<GlobalCamera>)>,
-    mut right_camera: Query<&mut Camera, With<GlobalCamera>>,
-) {
-    // We need to dynamically resize the camera's viewports whenever the window size changes
-    // so then each camera always takes up half the screen.
-    // A resize_event is sent when the window is first created, allowing us to reuse this system for initial setup.
-    for resize_event in resize_events.iter() {
-        if resize_event.id == WindowId::primary() {
-            let window = windows.primary();
-            let mut left_camera = left_camera.single_mut();
-            left_camera.viewport = Some(Viewport {
-                physical_position: UVec2::new(0, 0),
-                physical_size: UVec2::new(window.physical_width() / 2, window.physical_height()),
-                ..default()
-            });
+// fn set_camera_viewports(
+//     windows: Res<Windows>,
+//     mut resize_events: EventReader<WindowResized>,
+//     mut left_camera: Query<&mut Camera, (With<PlayerCamera>, Without<GlobalCamera>)>,
+//     mut right_camera: Query<&mut Camera, With<GlobalCamera>>,
+// ) {
+//     // We need to dynamically resize the camera's viewports whenever the window size changes
+//     // so then each camera always takes up half the screen.
+//     // A resize_event is sent when the window is first created, allowing us to reuse this system for initial setup.
+//     for resize_event in resize_events.iter() {
+//         if resize_event.id == WindowId::primary() {
+//             let window = windows.primary();
+//             let mut left_camera = left_camera.single_mut();
+//             left_camera.viewport = Some(Viewport {
+//                 physical_position: UVec2::new(0, 0),
+//                 physical_size: UVec2::new(window.physical_width() / 2, window.physical_height()),
+//                 ..default()
+//             });
 
-            let mut right_camera = right_camera.single_mut();
-            right_camera.viewport = Some(Viewport {
-                physical_position: UVec2::new(window.physical_width() / 2, 0),
-                physical_size: UVec2::new(window.physical_width() / 2, window.physical_height()),
-                ..default()
-            });
-        }
-    }
-}
+//             let mut right_camera = right_camera.single_mut();
+//             right_camera.viewport = Some(Viewport {
+//                 physical_position: UVec2::new(window.physical_width() / 2, 0),
+//                 physical_size: UVec2::new(window.physical_width() / 2, window.physical_height()),
+//                 ..default()
+//             });
+//         }
+//     }
+// }
