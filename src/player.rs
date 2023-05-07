@@ -1,16 +1,16 @@
+use bevy::input::mouse::MouseMotion;
 use ::bevy::prelude::*;
 
 use bevy_rapier3d::prelude::{KinematicCharacterController, KinematicCharacterControllerOutput};
 
-use crate::GRAVITY_CONSTANT;
+use crate::{GRAVITY_CONSTANT, viewports::{PlayerCamera, GlobalCamera}};
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_system(rapier_player_movement)
-            ;
+            .add_system(rapier_player_movement);
     }
 }
 
@@ -26,12 +26,22 @@ pub fn rapier_player_movement (
         &mut KinematicCharacterController, 
         &mut Player, 
         &KinematicCharacterControllerOutput,
+        &mut Transform,
     )>,
+    mut player_camera: Query<
+        &mut Transform,
+        (
+            With<PlayerCamera>,
+            Without<GlobalCamera>,
+            Without<Player>
+        )   
+    >,
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
+    mut motion_evr: EventReader<MouseMotion>,
 ) {
 
-    for (mut controller, mut player, output) in controllers.iter_mut() {
+    for (mut controller, mut player, output, mut transform) in controllers.iter_mut() {
 
         let delta_s = time.delta_seconds();
 
@@ -49,6 +59,18 @@ pub fn rapier_player_movement (
             player.velocity.y = 0.0;
         }
 
+        player_camera.single_mut();
+        let mouse_movement: Vec2 = motion_evr.iter().map(|a| a.delta).sum();
+
+        // anfinbd the angle of camera to player
+        // move the camera around the player ig
+
+        if keys.pressed(KeyCode::W) {
+            movement += Vec3::new(0.0, 0.0, player.run_speed);
+        }        
+        if keys.pressed(KeyCode::S) {
+            movement += Vec3::new(0.0, 0.0, -player.run_speed);
+        }        
         if keys.pressed(KeyCode::D) {
             movement += Vec3::new(player.run_speed, 0.0, 0.0);
         }        

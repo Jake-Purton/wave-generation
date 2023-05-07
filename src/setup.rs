@@ -2,10 +2,10 @@ use bevy_rapier3d::prelude::*;
 
 use bevy::{
     prelude::*,
-    render::{render_resource::{Extent3d, TextureDimension, TextureFormat}, camera::Viewport}, core_pipeline::clear_color::ClearColorConfig, window::{WindowResized, WindowId},
+    render::{render_resource::{Extent3d, TextureDimension, TextureFormat}}, core_pipeline::clear_color::ClearColorConfig, window::CursorGrabMode,
 };
 
-use crate::{player::Player, PLAYER_SIZE};
+use crate::{player::Player, PLAYER_SIZE, viewports::{PlayerCamera, GlobalCamera}};
 pub struct SetupPlugin;
 
 impl Plugin for SetupPlugin {
@@ -13,8 +13,7 @@ impl Plugin for SetupPlugin {
 
         app
             .add_startup_system(setup)
-            // .add_system(set_camera_viewports)
-            ;
+            .add_system(cursor_grab_system);
     }
 }
 
@@ -22,12 +21,6 @@ impl Plugin for SetupPlugin {
 // A marker component for our shapes so we can query them separately from the ground plane
 #[derive(Component)]
 struct Shape;
-
-#[derive(Component)]
-struct PlayerCamera;
-
-#[derive(Component)]
-struct GlobalCamera;
 
 pub fn setup(
     mut commands: Commands,
@@ -91,8 +84,6 @@ pub fn setup(
         Collider::cuboid(5000.0, 0.0, 5000.0)
     ));
 
-    // global camera
-
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(0.0, 3000.0, 0.0).looking_at(Vec3::ZERO, Vec3::Z),
@@ -141,31 +132,20 @@ fn uv_debug_texture() -> Image {
     )
 }
 
-// fn set_camera_viewports(
-//     windows: Res<Windows>,
-//     mut resize_events: EventReader<WindowResized>,
-//     mut left_camera: Query<&mut Camera, (With<PlayerCamera>, Without<GlobalCamera>)>,
-//     mut right_camera: Query<&mut Camera, With<GlobalCamera>>,
-// ) {
-//     // We need to dynamically resize the camera's viewports whenever the window size changes
-//     // so then each camera always takes up half the screen.
-//     // A resize_event is sent when the window is first created, allowing us to reuse this system for initial setup.
-//     for resize_event in resize_events.iter() {
-//         if resize_event.id == WindowId::primary() {
-//             let window = windows.primary();
-//             let mut left_camera = left_camera.single_mut();
-//             left_camera.viewport = Some(Viewport {
-//                 physical_position: UVec2::new(0, 0),
-//                 physical_size: UVec2::new(window.physical_width() / 2, window.physical_height()),
-//                 ..default()
-//             });
+fn cursor_grab_system(
+    mut windows: ResMut<Windows>,
+    btn: Res<Input<MouseButton>>,
+    key: Res<Input<KeyCode>>,
+) {
+    let window = windows.get_primary_mut().unwrap();
 
-//             let mut right_camera = right_camera.single_mut();
-//             right_camera.viewport = Some(Viewport {
-//                 physical_position: UVec2::new(window.physical_width() / 2, 0),
-//                 physical_size: UVec2::new(window.physical_width() / 2, window.physical_height()),
-//                 ..default()
-//             });
-//         }
-//     }
-// }
+    if btn.just_pressed(MouseButton::Left) {
+        window.set_cursor_grab_mode(CursorGrabMode::Locked);
+        window.set_cursor_visibility(false);
+    }
+
+    if key.just_pressed(KeyCode::Escape) {
+        window.set_cursor_grab_mode(CursorGrabMode::None);
+        window.set_cursor_visibility(true);
+    }
+}

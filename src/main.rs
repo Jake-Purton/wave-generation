@@ -3,9 +3,10 @@
 
 mod setup;
 mod player;
+mod viewports;
 
 use bevy::prelude::*;
-
+use viewports::CameraViewportPlugin;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_rapier3d::prelude::*;
 use player::PlayerPlugin;
@@ -23,6 +24,7 @@ fn main() {
         .add_plugin(RapierDebugRenderPlugin::default())
         .add_plugin(SetupPlugin)
         .add_plugin(PlayerPlugin)
+        // .add_plugin(CameraViewportPlugin)
         .insert_resource(ClearColor(Color::rgb(0.2, 0.8, 0.4)))
         .run();
 }
